@@ -53,6 +53,23 @@ type
     btnPush: TButton;
     btnRevert: TButton;
     lvChanges: TListView;
+    SplitterDiff: TSplitter;
+    PanelDiffPreview: TPanel;
+    PanelPreviewHeader: TPanel;
+    lblPreviewTitle: TLabel;
+    lblSelectedFile: TLabel;
+    pcDiff: TPageControl;
+    tsSideBySide: TTabSheet;
+    PanelOriginal: TPanel;
+    lblOriginalHeader: TLabel;
+    memoOriginal: TMemo;
+    SplitterSideBySide: TSplitter;
+    PanelModified: TPanel;
+    lblModifiedHeader: TLabel;
+    memoModified: TMemo;
+    tsUnifiedDiff: TTabSheet;
+    memoUnifiedDiff: TMemo;
+
     pmChanges: TPopupMenu;
     miStage: TMenuItem;
     miUnstage: TMenuItem;
@@ -115,6 +132,7 @@ type
     procedure btnPushClick(Sender: TObject);
     procedure btnRevertClick(Sender: TObject);
     procedure lvChangesItemChecked(Sender: TObject; Item: TListItem);
+    procedure lvChangesSelectItem(Sender: TObject; Item: TListItem; Selected: Boolean);
 
     procedure miStageClick(Sender: TObject);
     procedure miUnstageClick(Sender: TObject);
@@ -140,6 +158,7 @@ type
     function FormatStatusText(const AStatusCode: Char): string;
     function GetSelectedFilePath(out AIsStaged: Boolean; out AIsUntracked: Boolean): string;
     procedure RefreshStatus;
+    procedure UpdateDiffPreview(const AFilePath: string; AIsStaged: Boolean; AIsUntracked: Boolean);
     procedure AutoDetectRemoteRepo;
     procedure UpdateGitHubStatusDisplay;
     procedure RepositionTopBarLabels;
@@ -609,6 +628,15 @@ begin
           LogMessage(Format('Status: %d staged, %d unstaged | %d commit(s) para subir (Push).',
             [StagedList.Count, UnstagedList.Count, AheadCount]));
         end;
+
+        // Automatically select and preview first file if nothing currently selected
+        if (lvChanges.Items.Count > 0) and (lvChanges.Selected = nil) then
+        begin
+          lvChanges.Items[0].Selected := True;
+          lvChangesSelectItem(Self, lvChanges.Items[0], True);
+        end
+        else if lvChanges.Items.Count = 0 then
+          UpdateDiffPreview('', False, False);
       end
       else
         LogMessage('Status error: ' + FGitRunner.LastError);
@@ -771,10 +799,18 @@ begin
   PushOutput := FGitRunner.Push('origin', CurBranch);
   LogMessage('Git push: ' + PushOutput);
 
-  if (Pos('fatal:', LowerCase(PushOutput)) > 0) or (Pos('error:', LowerCase(PushOutput)) > 0) then
-    MessageDlg('Git Push Error', PushOutput, mtError, [mbOK], 0)
-  else
-    MessageDlg('Git Push', 'Push completed successfully!' + LineEnding + LineEnding + PushOutput, mtInformation, [mbOK], 0);
+    if (Pos('fatal:', LowerCase(PushOutput)) > 0) or (Pos('error:', LowerCase(PushOutput)) > 0) then
+    begin
+      if Pos('cannot lock ref', LowerCase(PushOutput)) > 0 then
+        MessageDlg('Git Push - Sincronização Necessária',
+          'O branch remoto no GitHub já possui alterações ou os ponteiros estavam desatualizados.' + LineEnding + LineEnding +
+          'Clique no botão "Pull" para receber as novidades do GitHub antes de enviar novamente.',
+          mtWarning, [mbOK], 0)
+      else
+        MessageDlg('Git Push Error', PushOutput, mtError, [mbOK], 0);
+    end
+    else
+      MessageDlg('Git Push', 'Push completed successfully!' + LineEnding + LineEnding + PushOutput, mtInformation, [mbOK], 0);
 
   RefreshStatus;
 end;
@@ -824,32 +860,83 @@ begin
     LogMessage('Unstage All failed: ' + FGitRunner.LastError);
 end;
 
+procedure TLazGitDockViewForm.UpdateDiffPreview(const AFilePath: string; AIsStaged: Boolean; AIsUntracked: Boolean);
+var
+  FullFilePath, OriginalContent, DiffText: string;
+begin
+  if AFilePath = '' then
+  begin
+    lblSelectedFile.Caption := 'Nenhum arquivo selecionado';
+    memoOriginal.Clear;
+    memoModified.Clear;
+    memoUnifiedDiff.Clear;
+    Exit;
+  end;
+
+  lblSelectedFile.Caption := 'Arquivo: ' + AFilePath;
+
+  // 1. Load Original code from Git HEAD
+  OriginalContent := FGitRunner.GetFileContentFromHead(AFilePath);
+  if OriginalContent <> '' then
+    memoOriginal.Text := OriginalContent
+  else if AIsUntracked then
+    memoOriginal.Text := '// Arquivo novo (não rastreado) - ainda não existia no repositório Git.'
+  else
+    memoOriginal.Text := '// Sem versão anterior registrada no HEAD.';
+
+  // 2. Load Modified code from local disk
+  FullFilePath := FGitRunner.GetProjectDir;
+  if (FullFilePath <> '') and (AFilePath <> '') then
+    FullFilePath := IncludeTrailingPathDelimiter(FullFilePath) + SetDirSeparators(AFilePath);
+
+  if FileExists(FullFilePath) then
+  begin
+    try
+      memoModified.Lines.LoadFromFile(FullFilePath);
+    except
+      on E: Exception do
+        memoModified.Text := '// Erro ao ler arquivo do disco: ' + E.Message;
+    end;
+  end
+  else
+    memoModified.Text := '// Arquivo excluído do disco local.';
+
+  // 3. Load Unified Git Diff
+  DiffText := FGitRunner.GetDiff(AFilePath, AIsStaged);
+  if DiffText <> '' then
+    memoUnifiedDiff.Text := DiffText
+  else if AIsUntracked then
+    memoUnifiedDiff.Text := '// Arquivo não rastreado (untracked). O Git só gera diff após inclusão (Stage).'
+  else
+    memoUnifiedDiff.Text := '// Nenhuma diferença pontual detectada pelo Git.';
+end;
+
+procedure TLazGitDockViewForm.lvChangesSelectItem(Sender: TObject; Item: TListItem; Selected: Boolean);
+var
+  FilePath: string;
+  IsStaged, IsUntracked: Boolean;
+begin
+  if not Selected or (Item = nil) or (Item.SubItems.Count < 2) then Exit;
+  IsStaged := (Item.SubItems[0] = 'Yes');
+  FilePath := Item.SubItems[1];
+  IsUntracked := (Item.Caption = 'Untracked');
+  UpdateDiffPreview(FilePath, IsStaged, IsUntracked);
+end;
+
 procedure TLazGitDockViewForm.btnDiffClick(Sender: TObject);
 var
-  FilePath, DiffText: string;
+  FilePath: string;
   IsStaged, IsUntracked: Boolean;
 begin
   FilePath := GetSelectedFilePath(IsStaged, IsUntracked);
   if FilePath = '' then
   begin
-    MessageDlg('Diff', 'Please select a file from the changes list to view its diff.', mtInformation, [mbOK], 0);
+    MessageDlg('Diff Preview', 'Por favor, selecione um arquivo na lista de alterações para visualizar o Diff.', mtInformation, [mbOK], 0);
     Exit;
   end;
 
-  if IsUntracked then
-  begin
-    MessageDlg('Diff', 'Selected file is untracked. No Git diff available until it is staged.', mtInformation, [mbOK], 0);
-    Exit;
-  end;
-
-  DiffText := FGitRunner.GetDiff(FilePath, IsStaged);
-  if DiffText <> '' then
-  begin
-    LogMessage(Format('--- Diff for %s (%s) ---', [FilePath, BoolToStr(IsStaged, 'Staged', 'Working tree')]));
-    LogMessage(DiffText);
-  end
-  else
-    LogMessage('No difference found for ' + FilePath);
+  UpdateDiffPreview(FilePath, IsStaged, IsUntracked);
+  pcDiff.ActivePage := tsSideBySide;
 end;
 
 procedure TLazGitDockViewForm.btnDiscardClick(Sender: TObject);

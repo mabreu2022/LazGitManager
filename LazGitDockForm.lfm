@@ -250,10 +250,10 @@ object LazGitDockViewForm: TLazGitDockViewForm
       end
       object lvChanges: TListView
         Left = 0
-        Height = 328
+        Height = 160
         Top = 34
         Width = 792
-        Align = alClient
+        Align = alTop
         Checkboxes = True
         Columns = <        
           item
@@ -282,6 +282,179 @@ object LazGitDockViewForm: TLazGitDockViewForm
         TabOrder = 1
         ViewStyle = vsReport
         OnItemChecked = lvChangesItemChecked
+        OnSelectItem = lvChangesSelectItem
+      end
+      object SplitterDiff: TSplitter
+        Cursor = crVSplit
+        Left = 0
+        Height = 5
+        Top = 194
+        Width = 792
+        Align = alTop
+        ResizeAnchor = akTop
+      end
+      object PanelDiffPreview: TPanel
+        Left = 0
+        Height = 163
+        Top = 199
+        Width = 792
+        Align = alClient
+        BevelOuter = bvNone
+        ClientHeight = 163
+        ClientWidth = 792
+        TabOrder = 3
+        object PanelPreviewHeader: TPanel
+          Left = 0
+          Height = 24
+          Top = 0
+          Width = 792
+          Align = alTop
+          BevelOuter = bvNone
+          ClientHeight = 24
+          ClientWidth = 792
+          Color = clBtnFace
+          ParentColor = False
+          TabOrder = 0
+          object lblPreviewTitle: TLabel
+            Left = 8
+            Height = 15
+            Top = 4
+            Width = 120
+            Caption = 'Visualização de Diff:'
+            Font.Style = [fsBold]
+            ParentColor = False
+          end
+          object lblSelectedFile: TLabel
+            Left = 136
+            Height = 15
+            Top = 4
+            Width = 150
+            Caption = 'Nenhum arquivo selecionado'
+            Font.Color = clNavy
+            ParentColor = False
+          end
+        end
+        object pcDiff: TPageControl
+          Left = 0
+          Height = 139
+          Top = 24
+          Width = 792
+          ActivePage = tsSideBySide
+          Align = alClient
+          TabIndex = 0
+          TabOrder = 1
+          object tsSideBySide: TTabSheet
+            Caption = 'Lado a Lado (Anterior vs Modificado)'
+            ClientHeight = 111
+            ClientWidth = 784
+            object PanelOriginal: TPanel
+              Left = 0
+              Height = 111
+              Top = 0
+              Width = 380
+              Align = alLeft
+              BevelOuter = bvNone
+              ClientHeight = 111
+              ClientWidth = 380
+              TabOrder = 0
+              object lblOriginalHeader: TLabel
+                Left = 0
+                Height = 18
+                Top = 0
+                Width = 380
+                Align = alTop
+                Caption = '  ◀ Código Anterior (Versão no Git / HEAD)'
+                Color = 15724527
+                Font.Color = clMaroon
+                Font.Style = [fsBold]
+                ParentColor = False
+                Transparent = False
+              end
+              object memoOriginal: TMemo
+                Left = 0
+                Height = 93
+                Top = 18
+                Width = 380
+                Align = alClient
+                Font.CharSet = ANSI_CHARSET
+                Font.Name = 'Consolas'
+                Font.Pitch = fpFixed
+                Font.Quality = fqDraft
+                ReadOnly = True
+                ScrollBars = ssBoth
+                TabOrder = 0
+                WordWrap = False
+              end
+            end
+            object SplitterSideBySide: TSplitter
+              Left = 380
+              Height = 111
+              Top = 0
+              Width = 5
+              Align = alLeft
+              ResizeAnchor = akLeft
+            end
+            object PanelModified: TPanel
+              Left = 385
+              Height = 111
+              Top = 0
+              Width = 399
+              Align = alClient
+              BevelOuter = bvNone
+              ClientHeight = 111
+              ClientWidth = 399
+              TabOrder = 2
+              object lblModifiedHeader: TLabel
+                Left = 0
+                Height = 18
+                Top = 0
+                Width = 399
+                Align = alTop
+                Caption = '  ▶ Código Modificado (Versão Atual / Disco)'
+                Color = 15138790
+                Font.Color = clGreen
+                Font.Style = [fsBold]
+                ParentColor = False
+                Transparent = False
+              end
+              object memoModified: TMemo
+                Left = 0
+                Height = 93
+                Top = 18
+                Width = 399
+                Align = alClient
+                Font.CharSet = ANSI_CHARSET
+                Font.Name = 'Consolas'
+                Font.Pitch = fpFixed
+                Font.Quality = fqDraft
+                ReadOnly = True
+                ScrollBars = ssBoth
+                TabOrder = 0
+                WordWrap = False
+              end
+            end
+          end
+          object tsUnifiedDiff: TTabSheet
+            Caption = 'Diff Detalhado (+ / -)'
+            ClientHeight = 111
+            ClientWidth = 784
+            object memoUnifiedDiff: TMemo
+              Left = 0
+              Height = 111
+              Top = 0
+              Width = 784
+              Align = alClient
+              Font.CharSet = ANSI_CHARSET
+              Font.Name = 'Consolas'
+              Font.Pitch = fpFixed
+              Font.Quality = fqDraft
+              ReadOnly = True
+              ScrollBars = ssBoth
+              TabOrder = 0
+              WordWrap = False
+            end
+          end
+        end
       end
     end
     object TabGitHub: TTabSheet

@@ -49,6 +49,7 @@ type
     function ResetToCommit(const ACommitHash: string; AHard: Boolean = False): Boolean;
     function RevertCommit(const ACommitHash: string): Boolean;
     function GetAheadBehindCount(out AAhead: Integer; out ABehind: Integer): Boolean;
+    function GetFileContentFromHead(const AFilename: string): string;
 
     property ExplicitWorkingDir: string read FExplicitWorkingDir write FExplicitWorkingDir;
     property LastError: string read FLastError;
@@ -304,7 +305,7 @@ end;
 
 function TLazGitRunner.Push(const ARemote, ABranch: string): string;
 var
-  OutStr, RemoteName, CurBranch: string;
+  OutStr, RemoteName, CurBranch, Dummy: string;
 begin
   Result := '';
   RemoteName := ARemote;
@@ -312,6 +313,9 @@ begin
   CurBranch := ABranch;
   if CurBranch = '' then CurBranch := GetCurrentBranch;
   if CurBranch = '' then CurBranch := 'main';
+
+  // Fetch first to ensure local refs match remote and prevent ref-lock rejection
+  RunCommand(['fetch', RemoteName], Dummy);
 
   RunCommand(['push', '-u', RemoteName, CurBranch], OutStr);
   Result := OutStr;
@@ -612,6 +616,17 @@ begin
     if RunCommand(['rev-list', '--count', 'origin/' + CurBranch + '..HEAD'], OutStr) then
       AAhead := StrToIntDef(Trim(OutStr), 0);
   end;
+end;
+
+function TLazGitRunner.GetFileContentFromHead(const AFilename: string): string;
+var
+  OutStr, NormalizedPath: string;
+begin
+  NormalizedPath := StringReplace(AFilename, '\', '/', [rfReplaceAll]);
+  if RunCommand(['show', 'HEAD:' + NormalizedPath], OutStr) then
+    Result := OutStr
+  else
+    Result := '';
 end;
 
 end.
