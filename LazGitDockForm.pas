@@ -49,6 +49,8 @@ type
     btnUnstageAll: TButton;
     btnDiff: TButton;
     btnDiscard: TButton;
+    btnPull: TButton;
+    btnPush: TButton;
     lvChanges: TListView;
     pmChanges: TPopupMenu;
     miStage: TMenuItem;
@@ -106,6 +108,8 @@ type
     procedure btnUnstageAllClick(Sender: TObject);
     procedure btnDiffClick(Sender: TObject);
     procedure btnDiscardClick(Sender: TObject);
+    procedure btnPullClick(Sender: TObject);
+    procedure btnPushClick(Sender: TObject);
     procedure lvChangesItemChecked(Sender: TObject; Item: TListItem);
 
     procedure miStageClick(Sender: TObject);
@@ -132,6 +136,7 @@ type
     procedure RefreshStatus;
     procedure AutoDetectRemoteRepo;
     procedure UpdateGitHubStatusDisplay;
+    procedure RepositionTopBarLabels;
     function OnProjectOpened(Sender: TObject; AProject: TLazProject): TModalResult;
     function OnProjectClose(Sender: TObject; AProject: TLazProject): TModalResult;
     procedure HandleConfigChanged(Sender: TObject);
@@ -220,6 +225,19 @@ begin
   UpdateGitHubStatusDisplay;
 end;
 
+procedure TLazGitDockViewForm.RepositionTopBarLabels;
+begin
+  // Flow nicely: Refresh Button -> Project -> Branch -> GitHub
+  lblProjectTitle.Left := btnRefresh.Left + btnRefresh.Width + 12;
+  lblProject.Left := lblProjectTitle.Left + lblProjectTitle.Width + 4;
+
+  lblBranchTitle.Left := lblProject.Left + lblProject.Width + 16;
+  lblBranch.Left := lblBranchTitle.Left + lblBranchTitle.Width + 4;
+
+  lblGitHubTitle.Left := lblBranch.Left + lblBranch.Width + 16;
+  lblGitHubUser.Left := lblGitHubTitle.Left + lblGitHubTitle.Width + 4;
+end;
+
 procedure TLazGitDockViewForm.UpdateGitHubStatusDisplay;
 begin
   GitHubConfig.LoadConfig;
@@ -236,6 +254,7 @@ begin
       lblGitHubUser.Caption := 'Connected';
     lblGitHubUser.Font.Color := clGreen;
   end;
+  RepositionTopBarLabels;
 end;
 
 procedure TLazGitDockViewForm.FormClose(Sender: TObject; var CloseAction: TCloseAction);
@@ -294,7 +313,10 @@ begin
     btnUnstageAll.Enabled := False;
     btnDiff.Enabled := False;
     btnDiscard.Enabled := False;
+    btnPull.Enabled := False;
+    btnPush.Enabled := False;
     lvChanges.Items.Clear;
+    RepositionTopBarLabels;
     Exit;
   end;
 
@@ -307,7 +329,8 @@ begin
 
   if not FGitRunner.IsRepoInitialized then
   begin
-    lblBranch.Caption := '(Not initialized - Link to Project)';
+    lblBranch.Caption := '(uninitialized)';
+    RepositionTopBarLabels;
     btnRefresh.Enabled := True;
     btnCommit.Enabled := False;
     btnCommitPush.Enabled := False;
@@ -315,6 +338,8 @@ begin
     btnUnstageAll.Enabled := False;
     btnDiff.Enabled := False;
     btnDiscard.Enabled := False;
+    btnPull.Enabled := False;
+    btnPush.Enabled := False;
     lvChanges.Items.Clear;
     Exit;
   end;
@@ -326,6 +351,8 @@ begin
   btnUnstageAll.Enabled := True;
   btnDiff.Enabled := True;
   btnDiscard.Enabled := True;
+  btnPull.Enabled := True;
+  btnPush.Enabled := True;
 
   CurBranch := FGitRunner.GetCurrentBranch;
   if CurBranch <> '' then
@@ -335,6 +362,8 @@ begin
   end
   else
     lblBranch.Caption := '(Detached/Error)';
+
+  RepositionTopBarLabels;
 
   StagedList := nil;
   UnstagedList := nil;
@@ -471,6 +500,8 @@ begin
   begin
     LogMessage('Commit successful: ' + Msg);
     memoCommit.Clear;
+    MessageDlg('Git Commit', 'Commit "' + Msg + '" successfully saved locally!' + LineEnding + LineEnding +
+      'To upload this commit to GitHub, click the "Push" button.', mtInformation, [mbOK], 0);
     RefreshStatus;
   end
   else
@@ -482,22 +513,35 @@ end;
 
 procedure TLazGitDockViewForm.btnCommitPushClick(Sender: TObject);
 var
-  Msg, PushOutput: string;
+  Msg, PushOutput, CurBranch: string;
 begin
   Msg := Trim(memoCommit.Text);
   if Msg = '' then
   begin
-    MessageDlg('Commit Validation', 'Please enter a commit message before committing and pushing.', mtWarning, [mbOK], 0);
-    Exit;
+    if MessageDlg('Git Push', 'Commit message is empty.' + LineEnding + LineEnding +
+      'Would you like to Push already-committed local changes to GitHub?',
+      mtConfirmation, [mbYes, mbNo], 0) = mrYes then
+    begin
+      btnPushClick(Sender);
+      Exit;
+    end
+    else
+      Exit;
   end;
 
   if FGitRunner.Commit(Msg) then
   begin
     LogMessage('Commit successful: ' + Msg);
     memoCommit.Clear;
-    LogMessage('Pushing to remote repository...');
-    PushOutput := FGitRunner.Push('origin', FGitRunner.GetCurrentBranch);
+    CurBranch := FGitRunner.GetCurrentBranch;
+    if CurBranch = '' then CurBranch := 'main';
+    LogMessage('Pushing branch "' + CurBranch + '" to GitHub...');
+    PushOutput := FGitRunner.Push('origin', CurBranch);
     LogMessage('Git push: ' + PushOutput);
+    if (Pos('fatal:', LowerCase(PushOutput)) > 0) or (Pos('error:', LowerCase(PushOutput)) > 0) then
+      MessageDlg('Git Push Error', PushOutput, mtError, [mbOK], 0)
+    else
+      MessageDlg('Git Commit & Push', 'Commit and Push completed successfully!' + LineEnding + LineEnding + PushOutput, mtInformation, [mbOK], 0);
     RefreshStatus;
   end
   else
@@ -505,6 +549,56 @@ begin
     LogMessage('Commit failed: ' + FGitRunner.LastError);
     MessageDlg('Git Commit Error', FGitRunner.LastError, mtError, [mbOK], 0);
   end;
+end;
+
+procedure TLazGitDockViewForm.btnPullClick(Sender: TObject);
+var
+  PullOutput, CurBranch: string;
+begin
+  if not FGitRunner.HasActiveProject then
+  begin
+    MessageDlg('Git Pull', 'No active project open in Lazarus IDE.', mtWarning, [mbOK], 0);
+    Exit;
+  end;
+
+  CurBranch := FGitRunner.GetCurrentBranch;
+  if CurBranch = '' then CurBranch := 'main';
+
+  LogMessage('Pulling changes from remote origin (' + CurBranch + ')...');
+  PullOutput := FGitRunner.Pull('origin', CurBranch);
+  LogMessage('Git pull: ' + PullOutput);
+
+  if (Pos('fatal:', LowerCase(PullOutput)) > 0) or (Pos('error:', LowerCase(PullOutput)) > 0) then
+    MessageDlg('Git Pull Error', PullOutput, mtError, [mbOK], 0)
+  else
+    MessageDlg('Git Pull', 'Pull completed successfully!' + LineEnding + LineEnding + PullOutput, mtInformation, [mbOK], 0);
+
+  RefreshStatus;
+end;
+
+procedure TLazGitDockViewForm.btnPushClick(Sender: TObject);
+var
+  PushOutput, CurBranch: string;
+begin
+  if not FGitRunner.HasActiveProject then
+  begin
+    MessageDlg('Git Push', 'No active project open in Lazarus IDE.', mtWarning, [mbOK], 0);
+    Exit;
+  end;
+
+  CurBranch := FGitRunner.GetCurrentBranch;
+  if CurBranch = '' then CurBranch := 'main';
+
+  LogMessage('Pushing branch "' + CurBranch + '" to GitHub origin...');
+  PushOutput := FGitRunner.Push('origin', CurBranch);
+  LogMessage('Git push: ' + PushOutput);
+
+  if (Pos('fatal:', LowerCase(PushOutput)) > 0) or (Pos('error:', LowerCase(PushOutput)) > 0) then
+    MessageDlg('Git Push Error', PushOutput, mtError, [mbOK], 0)
+  else
+    MessageDlg('Git Push', 'Push completed successfully!' + LineEnding + LineEnding + PushOutput, mtInformation, [mbOK], 0);
+
+  RefreshStatus;
 end;
 
 procedure TLazGitDockViewForm.btnStageAllClick(Sender: TObject);

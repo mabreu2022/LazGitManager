@@ -300,29 +300,31 @@ end;
 
 function TLazGitRunner.Push(const ARemote, ABranch: string): string;
 var
-  OutStr: string;
+  OutStr, RemoteName, CurBranch: string;
 begin
   Result := '';
-  if (ARemote <> '') and (ABranch <> '') then
-    RunCommand(['push', ARemote, ABranch], OutStr)
-  else if ARemote <> '' then
-    RunCommand(['push', ARemote], OutStr)
-  else
-    RunCommand(['push'], OutStr);
+  RemoteName := ARemote;
+  if RemoteName = '' then RemoteName := 'origin';
+  CurBranch := ABranch;
+  if CurBranch = '' then CurBranch := GetCurrentBranch;
+  if CurBranch = '' then CurBranch := 'main';
+
+  RunCommand(['push', '-u', RemoteName, CurBranch], OutStr);
   Result := OutStr;
 end;
 
 function TLazGitRunner.Pull(const ARemote, ABranch: string): string;
 var
-  OutStr: string;
+  OutStr, RemoteName, CurBranch: string;
 begin
   Result := '';
-  if (ARemote <> '') and (ABranch <> '') then
-    RunCommand(['pull', ARemote, ABranch], OutStr)
-  else if ARemote <> '' then
-    RunCommand(['pull', ARemote], OutStr)
-  else
-    RunCommand(['pull'], OutStr);
+  RemoteName := ARemote;
+  if RemoteName = '' then RemoteName := 'origin';
+  CurBranch := ABranch;
+  if CurBranch = '' then CurBranch := GetCurrentBranch;
+  if CurBranch = '' then CurBranch := 'main';
+
+  RunCommand(['pull', RemoteName, CurBranch], OutStr);
   Result := OutStr;
 end;
 
