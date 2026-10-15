@@ -43,6 +43,7 @@ type
     function GetRemoteURL(const ARemote: string = 'origin'): string;
     function ParseOwnerAndRepo(const ARemoteURL: string; out AOwner, ARepo: string): Boolean;
     function InitRepo: Boolean;
+    function IsRepoInitialized: Boolean;
     function SetRemoteURL(const ARemoteURL: string; const ARemote: string = 'origin'): Boolean;
 
     property ExplicitWorkingDir: string read FExplicitWorkingDir write FExplicitWorkingDir;
@@ -402,11 +403,29 @@ begin
   end;
 end;
 
+function TLazGitRunner.IsRepoInitialized: Boolean;
+var
+  PDir: string;
+begin
+  PDir := GetProjectDir;
+  Result := (PDir <> '') and DirectoryExists(PDir + DirectorySeparator + '.git');
+end;
+
 function TLazGitRunner.InitRepo: Boolean;
 var
   OutStr: string;
 begin
-  Result := RunCommand(['init'], OutStr);
+  // Try initializing with main as default branch
+  Result := RunCommand(['init', '-b', 'main'], OutStr);
+  if not Result then
+  begin
+    // Older Git versions fallback
+    Result := RunCommand(['init'], OutStr);
+    if Result then
+      RunCommand(['symbolic-ref', 'HEAD', 'refs/heads/main'], OutStr);
+  end;
+  if not Result then
+    FLastError := 'Failed to initialize Git repository: ' + FLastError;
 end;
 
 function TLazGitRunner.SetRemoteURL(const ARemoteURL: string; const ARemote: string): Boolean;
@@ -417,6 +436,13 @@ begin
   RemoteName := ARemote;
   if RemoteName = '' then
     RemoteName := 'origin';
+
+  // If this directory is not yet a git repository, initialize it first (git init)
+  if not IsRepoInitialized then
+  begin
+    if not InitRepo then
+      Exit(False);
+  end;
 
   // If remote already exists, update with set-url; otherwise add it
   if (GetRemoteURL(RemoteName) <> '') then

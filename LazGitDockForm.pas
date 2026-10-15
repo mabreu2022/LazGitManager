@@ -298,6 +298,27 @@ begin
     Exit;
   end;
 
+  if Assigned(LazarusIDE.ActiveProject) and (LazarusIDE.ActiveProject.ProjectInfoFile <> '') then
+    lblProject.Caption := ExtractFileName(LazarusIDE.ActiveProject.ProjectInfoFile)
+  else if FGitRunner.GetProjectDir <> '' then
+    lblProject.Caption := ExtractFileName(FGitRunner.GetProjectDir)
+  else
+    lblProject.Caption := '(Unknown)';
+
+  if not FGitRunner.IsRepoInitialized then
+  begin
+    lblBranch.Caption := '(Not initialized - Link to Project)';
+    btnRefresh.Enabled := True;
+    btnCommit.Enabled := False;
+    btnCommitPush.Enabled := False;
+    btnStageAll.Enabled := False;
+    btnUnstageAll.Enabled := False;
+    btnDiff.Enabled := False;
+    btnDiscard.Enabled := False;
+    lvChanges.Items.Clear;
+    Exit;
+  end;
+
   btnRefresh.Enabled := True;
   btnCommit.Enabled := True;
   btnCommitPush.Enabled := True;
@@ -305,13 +326,6 @@ begin
   btnUnstageAll.Enabled := True;
   btnDiff.Enabled := True;
   btnDiscard.Enabled := True;
-
-  if Assigned(LazarusIDE.ActiveProject) and (LazarusIDE.ActiveProject.ProjectInfoFile <> '') then
-    lblProject.Caption := ExtractFileName(LazarusIDE.ActiveProject.ProjectInfoFile)
-  else if FGitRunner.GetProjectDir <> '' then
-    lblProject.Caption := ExtractFileName(FGitRunner.GetProjectDir)
-  else
-    lblProject.Caption := '(Unknown)';
 
   CurBranch := FGitRunner.GetCurrentBranch;
   if CurBranch <> '' then
