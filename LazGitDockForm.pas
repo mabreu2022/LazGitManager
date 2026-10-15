@@ -8,7 +8,7 @@ uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ComCtrls,
   StdCtrls, ExtCtrls, Menus, Buttons,
   // IDEIntf
-  IDEWindowIntf, LazIDEIntf,
+  IDEWindowIntf, LazIDEIntf, ProjectIntf,
   // Local units
   LazGitHubConfig, LazGitHubAPI, LazGitCLI, LazGitHubOptionsFrame;
 
@@ -65,6 +65,7 @@ type
     btnSettings: TButton;
     lblRepo: TLabel;
     cbRepos: TComboBox;
+    btnSetRemote: TButton;
 
     PageControlGitHub: TPageControl;
     TabIssues: TTabSheet;
@@ -116,6 +117,7 @@ type
 
     procedure btnConnectGitHubClick(Sender: TObject);
     procedure btnSettingsClick(Sender: TObject);
+    procedure btnSetRemoteClick(Sender: TObject);
     procedure btnCreateIssueClick(Sender: TObject);
     procedure btnCreatePRClick(Sender: TObject);
     procedure cbReposChange(Sender: TObject);
@@ -129,6 +131,10 @@ type
     function GetSelectedFilePath(out AIsStaged: Boolean; out AIsUntracked: Boolean): string;
     procedure RefreshStatus;
     procedure AutoDetectRemoteRepo;
+    procedure UpdateGitHubStatusDisplay;
+    function OnProjectOpened(Sender: TObject; AProject: TLazProject): TModalResult;
+    function OnProjectClose(Sender: TObject; AProject: TLazProject): TModalResult;
+    procedure HandleConfigChanged(Sender: TObject);
   public
     procedure RefreshUI;
   end;
@@ -169,6 +175,13 @@ begin
   FGitHubClient := TLazGitHubClient.Create;
   FUpdatingList := False;
 
+  GitHubConfig.OnChange := @HandleConfigChanged;
+  if Assigned(LazarusIDE) then
+  begin
+    LazarusIDE.AddHandlerOnProjectOpened(@OnProjectOpened);
+    LazarusIDE.AddHandlerOnProjectClose(@OnProjectClose);
+  end;
+
   LogMessage('LazGitHubIntegration dockable view initialized.');
   RefreshUI;
 end;
@@ -178,8 +191,51 @@ begin
   if LazGitDockViewFormInstance = Self then
     LazGitDockViewFormInstance := nil;
 
+  if Assigned(LazarusIDE) then
+  begin
+    LazarusIDE.RemoveHandlerOnProjectOpened(@OnProjectOpened);
+    LazarusIDE.RemoveHandlerOnProjectClose(@OnProjectClose);
+  end;
+
+  GitHubConfig.OnChange := nil;
+
   FreeAndNil(FGitRunner);
   FreeAndNil(FGitHubClient);
+end;
+
+function TLazGitDockViewForm.OnProjectOpened(Sender: TObject; AProject: TLazProject): TModalResult;
+begin
+  RefreshUI;
+  Result := mrOk;
+end;
+
+function TLazGitDockViewForm.OnProjectClose(Sender: TObject; AProject: TLazProject): TModalResult;
+begin
+  RefreshUI;
+  Result := mrOk;
+end;
+
+procedure TLazGitDockViewForm.HandleConfigChanged(Sender: TObject);
+begin
+  UpdateGitHubStatusDisplay;
+end;
+
+procedure TLazGitDockViewForm.UpdateGitHubStatusDisplay;
+begin
+  GitHubConfig.LoadConfig;
+  if Trim(GitHubConfig.GitHubToken) = '' then
+  begin
+    lblGitHubUser.Caption := 'Disconnected';
+    lblGitHubUser.Font.Color := clMaroon;
+  end
+  else
+  begin
+    if GitHubConfig.GitHubUser <> '' then
+      lblGitHubUser.Caption := '@' + GitHubConfig.GitHubUser
+    else
+      lblGitHubUser.Caption := 'Connected';
+    lblGitHubUser.Font.Color := clGreen;
+  end;
 end;
 
 procedure TLazGitDockViewForm.FormClose(Sender: TObject; var CloseAction: TCloseAction);
@@ -214,6 +270,7 @@ end;
 
 procedure TLazGitDockViewForm.RefreshUI;
 begin
+  UpdateGitHubStatusDisplay;
   RefreshStatus;
   AutoDetectRemoteRepo;
 end;
@@ -612,7 +669,10 @@ begin
   LogMessage('Authenticating with GitHub REST API...');
   if FGitHubClient.TestAuthentication then
   begin
+    GitHubConfig.GitHubUser := FGitHubClient.AuthenticatedUser;
+    GitHubConfig.SaveConfig;
     lblGitHubUser.Caption := '@' + FGitHubClient.AuthenticatedUser;
+    lblGitHubUser.Font.Color := clGreen;
     LogMessage('Authenticated successfully as ' + FGitHubClient.AuthenticatedUser);
 
     RepoList := TStringList.Create;
@@ -639,7 +699,10 @@ begin
   end
   else
   begin
+    GitHubConfig.GitHubUser := '';
+    GitHubConfig.SaveConfig;
     lblGitHubUser.Caption := 'Disconnected (Auth Failed)';
+    lblGitHubUser.Font.Color := clMaroon;
     LogMessage('GitHub authentication failed: ' + FGitHubClient.LastError);
     MessageDlg('GitHub Error', FGitHubClient.LastError, mtError, [mbOK], 0);
   end;
@@ -649,6 +712,43 @@ procedure TLazGitDockViewForm.btnSettingsClick(Sender: TObject);
 begin
   if Assigned(LazarusIDE) then
     LazarusIDE.DoOpenIDEOptions(TLazGitHubOptionsFrame);
+end;
+
+procedure TLazGitDockViewForm.btnSetRemoteClick(Sender: TObject);
+var
+  RepoInput, FullURL: string;
+begin
+  if not FGitRunner.HasActiveProject then
+  begin
+    MessageDlg('Git Remote', 'No active project open in Lazarus IDE.' + LineEnding +
+      'Please open or create a project first.', mtWarning, [mbOK], 0);
+    Exit;
+  end;
+
+  RepoInput := Trim(cbRepos.Text);
+  if RepoInput = '' then
+  begin
+    MessageDlg('Git Remote', 'Please enter or select a repository (e.g. username/repo or full URL) before linking.', mtWarning, [mbOK], 0);
+    Exit;
+  end;
+
+  if (Pos('https://', RepoInput) = 1) or (Pos('http://', RepoInput) = 1) or (Pos('git@', RepoInput) = 1) then
+    FullURL := RepoInput
+  else
+    FullURL := 'https://github.com/' + RepoInput + '.git';
+
+  if FGitRunner.SetRemoteURL(FullURL, 'origin') then
+  begin
+    LogMessage('Git remote "origin" set to: ' + FullURL);
+    MessageDlg('Git Remote Linked', 'Remote "origin" successfully set to:' + LineEnding + FullURL, mtInformation, [mbOK], 0);
+    RefreshStatus;
+    AutoDetectRemoteRepo;
+  end
+  else
+  begin
+    LogMessage('Failed to set git remote: ' + FGitRunner.LastError);
+    MessageDlg('Git Remote Error', FGitRunner.LastError, mtError, [mbOK], 0);
+  end;
 end;
 
 procedure TLazGitDockViewForm.cbReposChange(Sender: TObject);

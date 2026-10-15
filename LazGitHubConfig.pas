@@ -20,6 +20,7 @@ type
   TLazGitHubConfig = class
   private
     FGitHubToken: string;
+    FGitHubUser: string;
     FGitExecutablePath: string;
     FAutoFetchInterval: Integer;
     FOnChange: TNotifyEvent;
@@ -33,6 +34,7 @@ type
     procedure SaveConfig;
 
     property GitHubToken: string read FGitHubToken write FGitHubToken;
+    property GitHubUser: string read FGitHubUser write FGitHubUser;
     property GitExecutablePath: string read FGitExecutablePath write FGitExecutablePath;
     property AutoFetchInterval: Integer read FAutoFetchInterval write FAutoFetchInterval;
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
@@ -63,6 +65,7 @@ begin
   FGitExecutablePath := DefaultGitExecutable;
   FAutoFetchInterval := DefaultAutoFetchInterval;
   FGitHubToken := '';
+  FGitHubUser := '';
 end;
 
 destructor TLazGitHubConfig.Destroy;
@@ -104,6 +107,7 @@ begin
       Storage := GetIDEConfigStorage(ConfigFileName, True);
       try
         FGitHubToken := Storage.GetValue('GitHub/Token/Value', '');
+        FGitHubUser := Storage.GetValue('GitHub/User/Value', '');
         FGitExecutablePath := Storage.GetValue('Git/ExecutablePath/Value', DefaultGitExecutable);
         FAutoFetchInterval := Storage.GetValue('Git/AutoFetchInterval/Value', DefaultAutoFetchInterval);
         Exit;
@@ -125,6 +129,7 @@ begin
       try
         Xml.Filename := CfgPath;
         FGitHubToken := Xml.GetValue('GitHub/Token/Value', '');
+        FGitHubUser := Xml.GetValue('GitHub/User/Value', '');
         FGitExecutablePath := Xml.GetValue('Git/ExecutablePath/Value', DefaultGitExecutable);
         FAutoFetchInterval := Xml.GetValue('Git/AutoFetchInterval/Value', DefaultAutoFetchInterval);
       except
@@ -149,6 +154,7 @@ begin
       Storage := GetIDEConfigStorage(ConfigFileName, False);
       try
         Storage.SetDeleteValue('GitHub/Token/Value', FGitHubToken, '');
+        Storage.SetDeleteValue('GitHub/User/Value', FGitHubUser, '');
         Storage.SetDeleteValue('Git/ExecutablePath/Value', FGitExecutablePath, DefaultGitExecutable);
         Storage.SetDeleteValue('Git/AutoFetchInterval/Value', FAutoFetchInterval, DefaultAutoFetchInterval);
       finally
@@ -169,6 +175,7 @@ begin
     try
       Xml.Filename := CfgPath;
       Xml.SetValue('GitHub/Token/Value', FGitHubToken);
+      Xml.SetValue('GitHub/User/Value', FGitHubUser);
       Xml.SetValue('Git/ExecutablePath/Value', FGitExecutablePath);
       Xml.SetValue('Git/AutoFetchInterval/Value', FAutoFetchInterval);
       Xml.Flush;

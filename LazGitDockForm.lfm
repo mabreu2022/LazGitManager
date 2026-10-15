@@ -297,6 +297,15 @@ object LazGitDockViewForm: TLazGitDockViewForm
           OnChange = cbReposChange
           TabOrder = 2
         end
+        object btnSetRemote: TButton
+          Left = 570
+          Height = 26
+          Top = 5
+          Width = 130
+          Caption = 'Link to Project'
+          OnClick = btnSetRemoteClick
+          TabOrder = 3
+        end
       end
       object PageControlGitHub: TPageControl
         Left = 0

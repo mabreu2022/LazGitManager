@@ -74,6 +74,8 @@ begin
   GitHubConfig.GitExecutablePath := Trim(edtGitPath.Text);
   GitHubConfig.GitHubToken := Trim(edtToken.Text);
   GitHubConfig.AutoFetchInterval := seAutoFetch.Value;
+  if GitHubConfig.GitHubToken = '' then
+    GitHubConfig.GitHubUser := '';
   GitHubConfig.SaveConfig;
 end;
 
@@ -127,6 +129,7 @@ begin
     begin
       lblStatus.Font.Color := clGreen;
       lblStatus.Caption := 'Success! Authenticated as @' + Client.AuthenticatedUser;
+      GitHubConfig.GitHubUser := Client.AuthenticatedUser;
     end
     else
     begin

@@ -41,6 +41,8 @@ type
     function GetDiff(const AFilename: string; AStaged: Boolean = False): string;
     function GetRemoteURL(const ARemote: string = 'origin'): string;
     function ParseOwnerAndRepo(const ARemoteURL: string; out AOwner, ARepo: string): Boolean;
+    function InitRepo: Boolean;
+    function SetRemoteURL(const ARemoteURL: string; const ARemote: string = 'origin'): Boolean;
 
     property LastError: string read FLastError;
     property LastExitCode: Integer read FLastExitCode;
@@ -383,6 +385,29 @@ begin
     ARepo := Copy(S, SlashPos + 1, Length(S));
     Result := (AOwner <> '') and (ARepo <> '');
   end;
+end;
+
+function TLazGitRunner.InitRepo: Boolean;
+var
+  OutStr: string;
+begin
+  Result := RunCommand(['init'], OutStr);
+end;
+
+function TLazGitRunner.SetRemoteURL(const ARemoteURL: string; const ARemote: string): Boolean;
+var
+  OutStr: string;
+  RemoteName: string;
+begin
+  RemoteName := ARemote;
+  if RemoteName = '' then
+    RemoteName := 'origin';
+
+  // If remote already exists, update with set-url; otherwise add it
+  if (GetRemoteURL(RemoteName) <> '') then
+    Result := RunCommand(['remote', 'set-url', RemoteName, ARemoteURL], OutStr)
+  else
+    Result := RunCommand(['remote', 'add', RemoteName, ARemoteURL], OutStr);
 end;
 
 end.
