@@ -9,6 +9,7 @@ object LazGitDockViewForm: TLazGitDockViewForm
   OnClose = FormClose
   OnCreate = FormCreate
   OnDestroy = FormDestroy
+  OnActivate = FormActivate
   LCLVersion = '3.0.0.0'
   object PanelTop: TPanel
     Left = 0
@@ -257,15 +258,23 @@ object LazGitDockViewForm: TLazGitDockViewForm
         Columns = <        
           item
             Caption = 'Status'
-            Width = 100
+            Width = 90
           end        
           item
             Caption = 'Staged'
-            Width = 70
+            Width = 65
           end        
           item
             Caption = 'File Path'
-            Width = 600
+            Width = 320
+          end        
+          item
+            Caption = 'Size'
+            Width = 85
+          end        
+          item
+            Caption = 'Modified'
+            Width = 150
           end>
         PopupMenu = pmChanges
         ReadOnly = True

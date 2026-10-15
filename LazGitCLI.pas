@@ -48,6 +48,7 @@ type
     function GetCommitHistory(const AList: TStrings; AMaxCount: Integer = 50): Boolean;
     function ResetToCommit(const ACommitHash: string; AHard: Boolean = False): Boolean;
     function RevertCommit(const ACommitHash: string): Boolean;
+    function GetAheadBehindCount(out AAhead: Integer; out ABehind: Integer): Boolean;
 
     property ExplicitWorkingDir: string read FExplicitWorkingDir write FExplicitWorkingDir;
     property LastError: string read FLastError;
@@ -549,6 +550,68 @@ begin
   Result := RunCommand(['revert', '--no-edit', HashTarget], OutStr);
   if not Result then
     FLastError := OutStr;
+end;
+
+function TLazGitRunner.GetAheadBehindCount(out AAhead: Integer; out ABehind: Integer): Boolean;
+var
+  OutStr, CurBranch, Line: string;
+  Lines: TStringList;
+  AheadPos, BehindPos, CommaPos, BracketClose: Integer;
+begin
+  AAhead := 0;
+  ABehind := 0;
+  Result := False;
+
+  if not HasActiveProject or not IsRepoInitialized then Exit;
+
+  // 1. Try git status --porcelain -b
+  if RunCommand(['status', '--porcelain', '-b'], OutStr) then
+  begin
+    Lines := TStringList.Create;
+    try
+      Lines.Text := OutStr;
+      if Lines.Count > 0 then
+      begin
+        Line := Lines[0];
+        if (Length(Line) >= 2) and (Line[1] = '#') and (Line[2] = '#') then
+        begin
+          // Line format example: ## main...origin/main [ahead 1, behind 2]
+          AheadPos := Pos('ahead ', Line);
+          if AheadPos > 0 then
+          begin
+            AheadPos := AheadPos + 6;
+            CommaPos := Pos(',', Copy(Line, AheadPos, 20));
+            BracketClose := Pos(']', Copy(Line, AheadPos, 20));
+            if (CommaPos > 0) and ((BracketClose = 0) or (CommaPos < BracketClose)) then
+              AAhead := StrToIntDef(Trim(Copy(Line, AheadPos, CommaPos - 1)), 0)
+            else if BracketClose > 0 then
+              AAhead := StrToIntDef(Trim(Copy(Line, AheadPos, BracketClose - 1)), 0);
+          end;
+
+          BehindPos := Pos('behind ', Line);
+          if BehindPos > 0 then
+          begin
+            BehindPos := BehindPos + 7;
+            BracketClose := Pos(']', Copy(Line, BehindPos, 20));
+            if BracketClose > 0 then
+              ABehind := StrToIntDef(Trim(Copy(Line, BehindPos, BracketClose - 1)), 0);
+          end;
+          Result := True;
+        end;
+      end;
+    finally
+      Lines.Free;
+    end;
+  end;
+
+  // Fallback: if upstream tracking was not set or returned 0 ahead, check against origin/<branch>
+  if (AAhead = 0) then
+  begin
+    CurBranch := GetCurrentBranch;
+    if CurBranch = '' then CurBranch := 'main';
+    if RunCommand(['rev-list', '--count', 'origin/' + CurBranch + '..HEAD'], OutStr) then
+      AAhead := StrToIntDef(Trim(OutStr), 0);
+  end;
 end;
 
 end.

@@ -101,6 +101,8 @@ type
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
+    procedure FormActivate(Sender: TObject);
+    procedure tmrAutoRefreshTimer(Sender: TObject);
 
     procedure btnRefreshClick(Sender: TObject);
     procedure btnCommitClick(Sender: TObject);
@@ -131,6 +133,8 @@ type
     FGitRunner: TLazGitRunner;
     FGitHubClient: TLazGitHubClient;
     FUpdatingList: Boolean;
+    FAutoRefreshTimer: TTimer;
+    FLastStatusSummary: string;
 
     procedure LogMessage(const AMsg: string);
     function FormatStatusText(const AStatusCode: Char): string;
@@ -141,6 +145,10 @@ type
     procedure RepositionTopBarLabels;
     function OnProjectOpened(Sender: TObject; AProject: TLazProject): TModalResult;
     function OnProjectClose(Sender: TObject; AProject: TLazProject): TModalResult;
+    function OnIDESavedAll(Sender: TObject): TModalResult;
+    function OnIDESaveEditorFile(Sender: TObject; aFile: TLazProjectFile;
+      SaveStep: TSaveEditorFileStep; TargetFilename: string): TModalResult;
+    procedure OnIDEProjectBuildingFinished(Sender: TObject; BuildSuccessful: boolean);
     procedure HandleConfigChanged(Sender: TObject);
   public
     procedure RefreshUI;
@@ -176,17 +184,40 @@ end;
 
 { TLazGitDockViewForm }
 
+function FormatFileSize(ABytes: Int64): string;
+begin
+  if ABytes < 0 then
+    Result := '-'
+  else if ABytes < 1024 then
+    Result := Format('%d B', [ABytes])
+  else if ABytes < 1024 * 1024 then
+    Result := Format('%.1f KB', [ABytes / 1024.0])
+  else if ABytes < 1024 * 1024 * 1024 then
+    Result := Format('%.2f MB', [ABytes / (1024.0 * 1024.0)])
+  else
+    Result := Format('%.2f GB', [ABytes / (1024.0 * 1024.0 * 1024.0)]);
+end;
+
 procedure TLazGitDockViewForm.FormCreate(Sender: TObject);
 begin
   FGitRunner := TLazGitRunner.Create;
   FGitHubClient := TLazGitHubClient.Create;
   FUpdatingList := False;
+  FLastStatusSummary := '';
+
+  FAutoRefreshTimer := TTimer.Create(Self);
+  FAutoRefreshTimer.Interval := 3000;
+  FAutoRefreshTimer.OnTimer := @tmrAutoRefreshTimer;
+  FAutoRefreshTimer.Enabled := True;
 
   GitHubConfig.OnChange := @HandleConfigChanged;
   if Assigned(LazarusIDE) then
   begin
     LazarusIDE.AddHandlerOnProjectOpened(@OnProjectOpened);
     LazarusIDE.AddHandlerOnProjectClose(@OnProjectClose);
+    LazarusIDE.AddHandlerOnSavedAll(@OnIDESavedAll);
+    LazarusIDE.AddHandlerOnSaveEditorFile(@OnIDESaveEditorFile);
+    LazarusIDE.AddHandlerOnProjectBuildingFinished(@OnIDEProjectBuildingFinished);
   end;
 
   LogMessage('LazGitHubIntegration dockable view initialized.');
@@ -198,16 +229,58 @@ begin
   if LazGitDockViewFormInstance = Self then
     LazGitDockViewFormInstance := nil;
 
+  if Assigned(FAutoRefreshTimer) then
+  begin
+    FAutoRefreshTimer.Enabled := False;
+    FreeAndNil(FAutoRefreshTimer);
+  end;
+
   if Assigned(LazarusIDE) then
   begin
     LazarusIDE.RemoveHandlerOnProjectOpened(@OnProjectOpened);
     LazarusIDE.RemoveHandlerOnProjectClose(@OnProjectClose);
+    LazarusIDE.RemoveHandlerOnSavedAll(@OnIDESavedAll);
+    LazarusIDE.RemoveHandlerOnSaveEditorFile(@OnIDESaveEditorFile);
+    LazarusIDE.RemoveHandlerOnProjectBuildingFinished(@OnIDEProjectBuildingFinished);
   end;
 
   GitHubConfig.OnChange := nil;
 
   FreeAndNil(FGitRunner);
   FreeAndNil(FGitHubClient);
+end;
+
+procedure TLazGitDockViewForm.FormActivate(Sender: TObject);
+begin
+  if Assigned(FGitRunner) and FGitRunner.HasActiveProject then
+    RefreshStatus;
+end;
+
+procedure TLazGitDockViewForm.tmrAutoRefreshTimer(Sender: TObject);
+begin
+  if FUpdatingList then Exit;
+  if not Assigned(FGitRunner) or not FGitRunner.HasActiveProject or not FGitRunner.IsRepoInitialized then Exit;
+
+  RefreshStatus;
+end;
+
+function TLazGitDockViewForm.OnIDESavedAll(Sender: TObject): TModalResult;
+begin
+  RefreshStatus;
+  Result := mrOk;
+end;
+
+function TLazGitDockViewForm.OnIDESaveEditorFile(Sender: TObject; aFile: TLazProjectFile;
+  SaveStep: TSaveEditorFileStep; TargetFilename: string): TModalResult;
+begin
+  if SaveStep = sefsAfterWrite then
+    RefreshStatus;
+  Result := mrOk;
+end;
+
+procedure TLazGitDockViewForm.OnIDEProjectBuildingFinished(Sender: TObject; BuildSuccessful: boolean);
+begin
+  RefreshStatus;
 end;
 
 function TLazGitDockViewForm.OnProjectOpened(Sender: TObject; AProject: TLazProject): TModalResult;
@@ -302,7 +375,11 @@ var
   I, TabPos: Integer;
   Line, StatusCode, FileName: string;
   Item: TListItem;
-  CurBranch: string;
+  CurBranch, BranchInfo: string;
+  AheadCount, BehindCount: Integer;
+  StatusSummary: string;
+  FullFilePath, FileSizeStr, FileDateStr: string;
+  FileInfo: TSearchRec;
 begin
   if not FGitRunner.HasActiveProject then
   begin
@@ -359,10 +436,41 @@ begin
   btnPush.Enabled := True;
   btnRevert.Enabled := True;
 
+  AheadCount := 0;
+  BehindCount := 0;
+  FGitRunner.GetAheadBehindCount(AheadCount, BehindCount);
+
+  if AheadCount > 0 then
+  begin
+    btnPush.Caption := Format('Push (%d)', [AheadCount]);
+    btnPush.Font.Style := [fsBold];
+  end
+  else
+  begin
+    btnPush.Caption := 'Push';
+    btnPush.Font.Style := [];
+  end;
+
+  if BehindCount > 0 then
+  begin
+    btnPull.Caption := Format('Pull (%d)', [BehindCount]);
+    btnPull.Font.Style := [fsBold];
+  end
+  else
+  begin
+    btnPull.Caption := 'Pull';
+    btnPull.Font.Style := [];
+  end;
+
   CurBranch := FGitRunner.GetCurrentBranch;
   if CurBranch <> '' then
   begin
-    lblBranch.Caption := CurBranch;
+    BranchInfo := CurBranch;
+    if AheadCount > 0 then
+      BranchInfo := BranchInfo + Format(' (↑ %d para subir)', [AheadCount]);
+    if BehindCount > 0 then
+      BranchInfo := BranchInfo + Format(' (↓ %d para baixar)', [BehindCount]);
+    lblBranch.Caption := BranchInfo;
     edtPRHead.Text := CurBranch;
   end
   else
@@ -396,6 +504,34 @@ begin
             FileName := Line;
           end;
 
+          FullFilePath := FGitRunner.GetProjectDir;
+          if (FullFilePath <> '') and (FileName <> '') then
+            FullFilePath := IncludeTrailingPathDelimiter(FullFilePath) + SetDirSeparators(FileName);
+
+          if (StatusCode = 'D') or (not FileExists(FullFilePath)) then
+          begin
+            FileSizeStr := '-';
+            FileDateStr := '(removido)';
+          end
+          else if FindFirst(FullFilePath, faAnyFile, FileInfo) = 0 then
+          begin
+            try
+              FileSizeStr := FormatFileSize(FileInfo.Size);
+              try
+                FileDateStr := FormatDateTime('dd/mm/yyyy hh:nn:ss', FileDateToDateTime(FileInfo.Time));
+              except
+                FileDateStr := '-';
+              end;
+            finally
+              FindClose(FileInfo);
+            end;
+          end
+          else
+          begin
+            FileSizeStr := '-';
+            FileDateStr := '-';
+          end;
+
           Item := lvChanges.Items.Add;
           if Length(StatusCode) > 0 then
             Item.Caption := FormatStatusText(StatusCode[1])
@@ -404,6 +540,8 @@ begin
 
           Item.SubItems.Add('Yes');
           Item.SubItems.Add(FileName);
+          Item.SubItems.Add(FileSizeStr);
+          Item.SubItems.Add(FileDateStr);
           Item.Checked := True;
         end;
 
@@ -423,6 +561,34 @@ begin
             FileName := Line;
           end;
 
+          FullFilePath := FGitRunner.GetProjectDir;
+          if (FullFilePath <> '') and (FileName <> '') then
+            FullFilePath := IncludeTrailingPathDelimiter(FullFilePath) + SetDirSeparators(FileName);
+
+          if (StatusCode = 'D') or (not FileExists(FullFilePath)) then
+          begin
+            FileSizeStr := '-';
+            FileDateStr := '(removido)';
+          end
+          else if FindFirst(FullFilePath, faAnyFile, FileInfo) = 0 then
+          begin
+            try
+              FileSizeStr := FormatFileSize(FileInfo.Size);
+              try
+                FileDateStr := FormatDateTime('dd/mm/yyyy hh:nn:ss', FileDateToDateTime(FileInfo.Time));
+              except
+                FileDateStr := '-';
+              end;
+            finally
+              FindClose(FileInfo);
+            end;
+          end
+          else
+          begin
+            FileSizeStr := '-';
+            FileDateStr := '-';
+          end;
+
           Item := lvChanges.Items.Add;
           if Length(StatusCode) > 0 then
             Item.Caption := FormatStatusText(StatusCode[1])
@@ -431,11 +597,18 @@ begin
 
           Item.SubItems.Add('No');
           Item.SubItems.Add(FileName);
+          Item.SubItems.Add(FileSizeStr);
+          Item.SubItems.Add(FileDateStr);
           Item.Checked := False;
         end;
 
-        LogMessage(Format('Status updated: %d staged, %d unstaged changes.',
-          [StagedList.Count, UnstagedList.Count]));
+        StatusSummary := Format('%d-%d-%d-%d', [StagedList.Count, UnstagedList.Count, AheadCount, BehindCount]);
+        if StatusSummary <> FLastStatusSummary then
+        begin
+          FLastStatusSummary := StatusSummary;
+          LogMessage(Format('Status: %d staged, %d unstaged | %d commit(s) para subir (Push).',
+            [StagedList.Count, UnstagedList.Count, AheadCount]));
+        end;
       end
       else
         LogMessage('Status error: ' + FGitRunner.LastError);
