@@ -1,0 +1,512 @@
+object LazGitDockViewForm: TLazGitDockViewForm
+  Left = 320
+  Height = 650
+  Top = 150
+  Width = 800
+  Caption = 'Git & GitHub Manager'
+  ClientHeight = 650
+  ClientWidth = 800
+  OnClose = FormClose
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  LCLVersion = '3.0.0.0'
+  object PanelTop: TPanel
+    Left = 0
+    Height = 120
+    Top = 0
+    Width = 800
+    Align = alTop
+    BevelOuter = bvNone
+    ClientHeight = 120
+    ClientWidth = 800
+    TabOrder = 0
+    object PanelTopBar: TPanel
+      Left = 0
+      Height = 36
+      Top = 0
+      Width = 800
+      Align = alTop
+      BevelOuter = bvNone
+      ClientHeight = 36
+      ClientWidth = 800
+      TabOrder = 0
+      object btnRefresh: TButton
+        Left = 6
+        Height = 26
+        Top = 5
+        Width = 80
+        Caption = 'Refresh'
+        OnClick = btnRefreshClick
+        TabOrder = 0
+      end
+      object lblBranchTitle: TLabel
+        Left = 96
+        Height = 15
+        Top = 11
+        Width = 40
+        Caption = 'Branch:'
+        Font.Style = [fsBold]
+        ParentColor = False
+        ParentFont = False
+      end
+      object lblBranch: TLabel
+        Left = 142
+        Height = 15
+        Top = 11
+        Width = 5
+        Caption = '-'
+        Font.Color = clNavy
+        Font.Style = [fsBold]
+        ParentColor = False
+        ParentFont = False
+      end
+      object lblProjectTitle: TLabel
+        Left = 240
+        Height = 15
+        Top = 11
+        Width = 41
+        Caption = 'Project:'
+        Font.Style = [fsBold]
+        ParentColor = False
+        ParentFont = False
+      end
+      object lblProject: TLabel
+        Left = 287
+        Height = 15
+        Top = 11
+        Width = 40
+        Caption = '(None)'
+        ParentColor = False
+      end
+      object lblGitHubTitle: TLabel
+        Left = 440
+        Height = 15
+        Top = 11
+        Width = 42
+        Caption = 'GitHub:'
+        Font.Style = [fsBold]
+        ParentColor = False
+        ParentFont = False
+      end
+      object lblGitHubUser: TLabel
+        Left = 488
+        Height = 15
+        Top = 11
+        Width = 72
+        Caption = 'Disconnected'
+        Font.Color = clMaroon
+        Font.Style = [fsBold]
+        ParentColor = False
+        ParentFont = False
+      end
+    end
+    object PanelCommit: TPanel
+      Left = 0
+      Height = 84
+      Top = 36
+      Width = 800
+      Align = alClient
+      BevelOuter = bvNone
+      ClientHeight = 84
+      ClientWidth = 800
+      TabOrder = 1
+      object lblCommitTitle: TLabel
+        Left = 6
+        Height = 15
+        Top = 2
+        Width = 99
+        Caption = 'Commit Message:'
+        ParentColor = False
+      end
+      object memoCommit: TMemo
+        Left = 6
+        Height = 56
+        Top = 20
+        Width = 630
+        Anchors = [akTop, akLeft, akRight, akBottom]
+        ScrollBars = ssVertical
+        TabOrder = 0
+      end
+      object PanelCommitButtons: TPanel
+        Left = 642
+        Height = 56
+        Top = 20
+        Width = 152
+        Anchors = [akTop, akRight, akBottom]
+        BevelOuter = bvNone
+        ClientHeight = 56
+        ClientWidth = 152
+        TabOrder = 1
+        object btnCommit: TButton
+          Left = 2
+          Height = 25
+          Top = 0
+          Width = 148
+          Caption = 'Commit'
+          OnClick = btnCommitClick
+          TabOrder = 0
+        end
+        object btnCommitPush: TButton
+          Left = 2
+          Height = 25
+          Top = 29
+          Width = 148
+          Caption = 'Commit && Push'
+          OnClick = btnCommitPushClick
+          TabOrder = 1
+        end
+      end
+    end
+  end
+  object PageControl: TPageControl
+    Left = 0
+    Height = 390
+    Top = 120
+    Width = 800
+    ActivePage = TabChanges
+    Align = alClient
+    TabIndex = 0
+    TabOrder = 1
+    object TabChanges: TTabSheet
+      Caption = 'Git Changes'
+      ClientHeight = 362
+      ClientWidth = 792
+      object PanelChangesBar: TPanel
+        Left = 0
+        Height = 34
+        Top = 0
+        Width = 792
+        Align = alTop
+        BevelOuter = bvNone
+        ClientHeight = 34
+        ClientWidth = 792
+        TabOrder = 0
+        object btnStageAll: TButton
+          Left = 6
+          Height = 25
+          Top = 4
+          Width = 75
+          Caption = 'Stage All'
+          OnClick = btnStageAllClick
+          TabOrder = 0
+        end
+        object btnUnstageAll: TButton
+          Left = 87
+          Height = 25
+          Top = 4
+          Width = 85
+          Caption = 'Unstage All'
+          OnClick = btnUnstageAllClick
+          TabOrder = 1
+        end
+        object btnDiff: TButton
+          Left = 178
+          Height = 25
+          Top = 4
+          Width = 75
+          Caption = 'Diff'
+          OnClick = btnDiffClick
+          TabOrder = 2
+        end
+        object btnDiscard: TButton
+          Left = 259
+          Height = 25
+          Top = 4
+          Width = 75
+          Caption = 'Discard'
+          OnClick = btnDiscardClick
+          TabOrder = 3
+        end
+      end
+      object lvChanges: TListView
+        Left = 0
+        Height = 328
+        Top = 34
+        Width = 792
+        Align = alClient
+        Checkboxes = True
+        Columns = <        
+          item
+            Caption = 'Status'
+            Width = 100
+          end        
+          item
+            Caption = 'Staged'
+            Width = 70
+          end        
+          item
+            Caption = 'File Path'
+            Width = 600
+          end>
+        PopupMenu = pmChanges
+        ReadOnly = True
+        RowSelect = True
+        TabOrder = 1
+        ViewStyle = vsReport
+        OnItemChecked = lvChangesItemChecked
+      end
+    end
+    object TabGitHub: TTabSheet
+      Caption = 'GitHub Remote'
+      ClientHeight = 362
+      ClientWidth = 792
+      object PanelGitHubBar: TPanel
+        Left = 0
+        Height = 36
+        Top = 0
+        Width = 792
+        Align = alTop
+        BevelOuter = bvNone
+        ClientHeight = 36
+        ClientWidth = 792
+        TabOrder = 0
+        object btnConnectGitHub: TButton
+          Left = 6
+          Height = 26
+          Top = 5
+          Width = 120
+          Caption = 'Connect / Verify'
+          OnClick = btnConnectGitHubClick
+          TabOrder = 0
+        end
+        object btnSettings: TButton
+          Left = 132
+          Height = 26
+          Top = 5
+          Width = 90
+          Caption = 'Settings...'
+          OnClick = btnSettingsClick
+          TabOrder = 1
+        end
+        object lblRepo: TLabel
+          Left = 236
+          Height = 15
+          Top = 11
+          Width = 60
+          Caption = 'Repository:'
+          Font.Style = [fsBold]
+          ParentColor = False
+          ParentFont = False
+        end
+        object cbRepos: TComboBox
+          Left = 302
+          Height = 23
+          Top = 7
+          Width = 260
+          ItemHeight = 15
+          OnChange = cbReposChange
+          TabOrder = 2
+        end
+      end
+      object PageControlGitHub: TPageControl
+        Left = 0
+        Height = 326
+        Top = 36
+        Width = 792
+        ActivePage = TabIssues
+        Align = alClient
+        TabIndex = 0
+        TabOrder = 1
+        object TabIssues: TTabSheet
+          Caption = 'New Issue'
+          ClientHeight = 298
+          ClientWidth = 784
+          object lblIssueTitle: TLabel
+            Left = 8
+            Height = 15
+            Top = 8
+            Width = 25
+            Caption = 'Title:'
+            ParentColor = False
+          end
+          object edtIssueTitle: TEdit
+            Left = 8
+            Height = 23
+            Top = 26
+            Width = 768
+            Anchors = [akTop, akLeft, akRight]
+            TabOrder = 0
+          end
+          object lblIssueBody: TLabel
+            Left = 8
+            Height = 15
+            Top = 56
+            Width = 30
+            Caption = 'Body:'
+            ParentColor = False
+          end
+          object memoIssueBody: TMemo
+            Left = 8
+            Height = 175
+            Top = 76
+            Width = 768
+            Anchors = [akTop, akLeft, akRight, akBottom]
+            ScrollBars = ssVertical
+            TabOrder = 1
+          end
+          object btnCreateIssue: TButton
+            Left = 8
+            Height = 28
+            Top = 260
+            Width = 130
+            Anchors = [akLeft, akBottom]
+            Caption = 'Create Issue'
+            OnClick = btnCreateIssueClick
+            TabOrder = 2
+          end
+        end
+        object TabPullRequest: TTabSheet
+          Caption = 'New Pull Request'
+          ClientHeight = 298
+          ClientWidth = 784
+          object lblPRTitle: TLabel
+            Left = 8
+            Height = 15
+            Top = 8
+            Width = 25
+            Caption = 'Title:'
+            ParentColor = False
+          end
+          object edtPRTitle: TEdit
+            Left = 8
+            Height = 23
+            Top = 26
+            Width = 768
+            Anchors = [akTop, akLeft, akRight]
+            TabOrder = 0
+          end
+          object lblPRHead: TLabel
+            Left = 8
+            Height = 15
+            Top = 56
+            Width = 71
+            Caption = 'Head Branch:'
+            ParentColor = False
+          end
+          object edtPRHead: TEdit
+            Left = 8
+            Height = 23
+            Top = 74
+            Width = 370
+            TabOrder = 1
+          end
+          object lblPRBase: TLabel
+            Left = 390
+            Height = 15
+            Top = 56
+            Width = 66
+            Caption = 'Base Branch:'
+            ParentColor = False
+          end
+          object edtPRBase: TEdit
+            Left = 390
+            Height = 23
+            Top = 74
+            Width = 386
+            Anchors = [akTop, akLeft, akRight]
+            TabOrder = 2
+            Text = 'main'
+          end
+          object lblPRBody: TLabel
+            Left = 8
+            Height = 15
+            Top = 104
+            Width = 30
+            Caption = 'Body:'
+            ParentColor = False
+          end
+          object memoPRBody: TMemo
+            Left = 8
+            Height = 125
+            Top = 124
+            Width = 768
+            Anchors = [akTop, akLeft, akRight, akBottom]
+            ScrollBars = ssVertical
+            TabOrder = 3
+          end
+          object btnCreatePR: TButton
+            Left = 8
+            Height = 28
+            Top = 258
+            Width = 150
+            Anchors = [akLeft, akBottom]
+            Caption = 'Create Pull Request'
+            OnClick = btnCreatePRClick
+            TabOrder = 4
+          end
+        end
+      end
+    end
+  end
+  object SplitterLog: TSplitter
+    Cursor = crVSplit
+    Left = 0
+    Height = 5
+    Top = 510
+    Width = 800
+    Align = alBottom
+    ResizeAnchor = akBottom
+  end
+  object PanelLog: TPanel
+    Left = 0
+    Height = 135
+    Top = 515
+    Width = 800
+    Align = alBottom
+    BevelOuter = bvNone
+    ClientHeight = 135
+    ClientWidth = 800
+    TabOrder = 3
+    object lblLog: TLabel
+      Left = 6
+      Height = 15
+      Top = 4
+      Width = 66
+      Caption = 'Activity Log:'
+      Font.Style = [fsBold]
+      ParentColor = False
+      ParentFont = False
+    end
+    object memoLog: TMemo
+      Left = 6
+      Height = 108
+      Top = 22
+      Width = 788
+      Anchors = [akTop, akLeft, akRight, akBottom]
+      ReadOnly = True
+      ScrollBars = ssBoth
+      TabOrder = 0
+    end
+  end
+  object pmChanges: TPopupMenu
+    Left = 392
+    Top = 240
+    object miStage: TMenuItem
+      Caption = 'Stage Selected'
+      OnClick = miStageClick
+    end
+    object miUnstage: TMenuItem
+      Caption = 'Unstage Selected'
+      OnClick = miUnstageClick
+    end
+    object miDiff: TMenuItem
+      Caption = 'View Diff'
+      OnClick = miDiffClick
+    end
+    object miDiscard: TMenuItem
+      Caption = 'Discard Changes'
+      OnClick = miDiscardClick
+    end
+    object miSep1: TMenuItem
+      Caption = '-'
+    end
+    object miStageAll: TMenuItem
+      Caption = 'Stage All Changes'
+      OnClick = miStageAllClick
+    end
+    object miUnstageAll: TMenuItem
+      Caption = 'Unstage All Changes'
+      OnClick = miUnstageAllClick
+    end
+  end
+end

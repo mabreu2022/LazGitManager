@@ -1,0 +1,153 @@
+object LazGitHubOptionsFrame: TLazGitHubOptionsFrame
+  Left = 0
+  Height = 460
+  Top = 0
+  Width = 600
+  ClientHeight = 460
+  ClientWidth = 600
+  TabOrder = 0
+  DesignLeft = 350
+  DesignTop = 200
+  object gbGit: TGroupBox
+    Left = 12
+    Height = 135
+    Top = 10
+    Width = 576
+    Anchors = [akTop, akLeft, akRight]
+    Caption = ' Local Git Configuration '
+    ClientHeight = 115
+    ClientWidth = 572
+    TabOrder = 0
+    object lblGitPath: TLabel
+      Left = 12
+      Height = 15
+      Top = 10
+      Width = 111
+      Caption = 'Git Executable Path:'
+      ParentColor = False
+    end
+    object edtGitPath: TEdit
+      Left = 12
+      Height = 23
+      Top = 28
+      Width = 460
+      Anchors = [akTop, akLeft, akRight]
+      TabOrder = 0
+      Text = 'git'
+    end
+    object btnBrowseGit: TButton
+      Left = 480
+      Height = 25
+      Top = 27
+      Width = 80
+      Anchors = [akTop, akRight]
+      Caption = 'Browse...'
+      OnClick = btnBrowseGitClick
+      TabOrder = 1
+    end
+    object lblAutoFetch: TLabel
+      Left = 12
+      Height = 15
+      Top = 62
+      Width = 145
+      Caption = 'Auto-Fetch Interval (min):'
+      ParentColor = False
+    end
+    object seAutoFetch: TSpinEdit
+      Left = 168
+      Height = 23
+      Top = 58
+      Width = 70
+      MaxValue = 1440
+      TabOrder = 2
+      Value = 0
+    end
+    object lblAutoFetchHint: TLabel
+      Left = 248
+      Height = 15
+      Top = 62
+      Width = 162
+      Caption = '(Set to 0 to disable auto-fetch)'
+      Font.Color = clGrayText
+      ParentColor = False
+      ParentFont = False
+    end
+  end
+  object gbGitHub: TGroupBox
+    Left = 12
+    Height = 270
+    Top = 155
+    Width = 576
+    Anchors = [akTop, akLeft, akRight, akBottom]
+    Caption = ' GitHub REST API Credentials '
+    ClientHeight = 250
+    ClientWidth = 572
+    TabOrder = 1
+    object lblToken: TLabel
+      Left = 12
+      Height = 15
+      Top = 12
+      Width = 203
+      Caption = 'Personal Access Token (Classic or Fine):'
+      ParentColor = False
+    end
+    object edtToken: TEdit
+      Left = 12
+      Height = 23
+      Top = 32
+      Width = 460
+      Anchors = [akTop, akLeft, akRight]
+      EchoMode = emPassword
+      PasswordChar = '*'
+      TabOrder = 0
+    end
+    object btnTogglePassword: TButton
+      Left = 480
+      Height = 25
+      Top = 31
+      Width = 80
+      Anchors = [akTop, akRight]
+      Caption = 'Show'
+      OnClick = btnTogglePasswordClick
+      TabOrder = 1
+    end
+    object btnTestConnection: TButton
+      Left = 12
+      Height = 28
+      Top = 66
+      Width = 140
+      Caption = 'Test Connection'
+      OnClick = btnTestConnectionClick
+      TabOrder = 2
+    end
+    object lblStatus: TLabel
+      Left = 162
+      Height = 15
+      Top = 72
+      Width = 4
+      Caption = ' '
+      Font.Style = [fsBold]
+      ParentColor = False
+      ParentFont = False
+    end
+    object lblTokenHelp: TLabel
+      Left = 12
+      Height = 100
+      Top = 110
+      Width = 548
+      Anchors = [akTop, akLeft, akRight, akBottom]
+      AutoSize = False
+      Caption = 'Required Token Scopes for Full Functionality:'#10'- repo (Full control of private repositories: pull, push, issues, PRs)'#10'- read:org (Read organization data)'#10'- read:user / user:email (Access user profile and verified email addresses)'#10#10'Tokens are securely stored in the Lazarus IDE config folder (lazgithub.xml).'
+      Font.Color = clGrayText
+      ParentColor = False
+      ParentFont = False
+      WordWrap = True
+    end
+  end
+  object OpenDialogGit: TOpenDialog
+    Title = 'Select Git Executable'
+    Filter = 'Executable (*.exe;*)|*.exe;*'
+    Left = 430
+    Top = 70
+  end
+end

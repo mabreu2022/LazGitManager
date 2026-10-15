@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <Package Version="4">
+    <PathDelim Value="\"/>
+    <Name Value="LazGitHubIntegration"/>
+    <Type Value="DesignTime"/>
+    <Author Value="Lazarus Community"/>
+    <CompilerOptions>
+      <Version Value="11"/>
+      <PathDelim Value="\"/>
+      <SearchPaths>
+        <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
+      </SearchPaths>
+      <Parsing>
+        <SyntaxOptions>
+          <SyntaxMode Value="ObjFPC"/>
+        </SyntaxOptions>
+      </Parsing>
+      <Other>
+        <CompilerMessages>
+          <UseMsgFile Value="True"/>
+        </CompilerMessages>
+        <CustomOptions Value="$(IDEBuildOptions)"/>
+      </Other>
+    </CompilerOptions>
+    <Description Value="Git and GitHub REST API integration plugin for Lazarus IDE"/>
+    <License Value="MIT"/>
+    <Version Major="1" Minor="0" Release="0" Build="0"/>
+    <Files Count="8">
+      <Item1>
+        <Filename Value="LazGitHubConfig.pas"/>
+        <UnitName Value="LazGitHubConfig"/>
+      </Item1>
+      <Item2>
+        <Filename Value="LazGitHubAPI.pas"/>
+        <UnitName Value="LazGitHubAPI"/>
+      </Item2>
+      <Item3>
+        <Filename Value="LazGitCLI.pas"/>
+        <UnitName Value="LazGitCLI"/>
+      </Item3>
+      <Item4>
+        <Filename Value="LazGitDockForm.pas"/>
+        <UnitName Value="LazGitDockForm"/>
+      </Item4>
+      <Item5>
+        <Filename Value="LazGitDockForm.lfm"/>
+        <Type Value="LFM"/>
+      </Item5>
+      <Item6>
+        <Filename Value="LazGitHubOptionsFrame.pas"/>
+        <UnitName Value="LazGitHubOptionsFrame"/>
+      </Item6>
+      <Item7>
+        <Filename Value="LazGitHubOptionsFrame.lfm"/>
+        <Type Value="LFM"/>
+      </Item7>
+      <Item8>
+        <Filename Value="LazGitHubRegistration.pas"/>
+        <HasRegisterProc Value="True"/>
+        <AddToUsesPkgSection Value="False"/>
+        <UnitName Value="LazGitHubRegistration"/>
+      </Item8>
+    </Files>
+    <RequiredPkgs Count="3">
+      <Item1>
+        <PackageName Value="IDEIntf"/>
+      </Item1>
+      <Item2>
+        <PackageName Value="FCL"/>
+      </Item2>
+      <Item3>
+        <PackageName Value="LCL"/>
+      </Item3>
+    </RequiredPkgs>
+    <UsageOptions>
+      <UnitPath Value="$(PkgOutDir)"/>
+    </UsageOptions>
+    <PublishOptions>
+      <Version Value="2"/>
+    </PublishOptions>
+  </Package>
+</CONFIG>
