@@ -45,6 +45,9 @@ type
     function InitRepo: Boolean;
     function IsRepoInitialized: Boolean;
     function SetRemoteURL(const ARemoteURL: string; const ARemote: string = 'origin'): Boolean;
+    function GetCommitHistory(const AList: TStrings; AMaxCount: Integer = 50): Boolean;
+    function ResetToCommit(const ACommitHash: string; AHard: Boolean = False): Boolean;
+    function RevertCommit(const ACommitHash: string): Boolean;
 
     property ExplicitWorkingDir: string read FExplicitWorkingDir write FExplicitWorkingDir;
     property LastError: string read FLastError;
@@ -489,6 +492,63 @@ begin
     Result := RunCommand(['remote', 'set-url', RemoteName, ARemoteURL], OutStr)
   else
     Result := RunCommand(['remote', 'add', RemoteName, ARemoteURL], OutStr);
+end;
+
+function TLazGitRunner.GetCommitHistory(const AList: TStrings; AMaxCount: Integer): Boolean;
+var
+  OutStr: string;
+  CountParam: string;
+begin
+  Result := False;
+  if not Assigned(AList) then Exit;
+  AList.Clear;
+
+  if AMaxCount <= 0 then AMaxCount := 50;
+  CountParam := '-n' + IntToStr(AMaxCount);
+
+  if RunCommand(['log', CountParam, '--pretty=format:%H%x09%h%x09%ad%x09%an%x09%s', '--date=short'], OutStr) then
+  begin
+    AList.Text := OutStr;
+    Result := True;
+  end;
+end;
+
+function TLazGitRunner.ResetToCommit(const ACommitHash: string; AHard: Boolean): Boolean;
+var
+  OutStr: string;
+  HashTarget: string;
+begin
+  HashTarget := Trim(ACommitHash);
+  if HashTarget = '' then
+  begin
+    FLastError := 'Commit hash cannot be empty.';
+    Exit(False);
+  end;
+
+  if AHard then
+    Result := RunCommand(['reset', '--hard', HashTarget], OutStr)
+  else
+    Result := RunCommand(['reset', '--mixed', HashTarget], OutStr);
+
+  if not Result then
+    FLastError := OutStr;
+end;
+
+function TLazGitRunner.RevertCommit(const ACommitHash: string): Boolean;
+var
+  OutStr: string;
+  HashTarget: string;
+begin
+  HashTarget := Trim(ACommitHash);
+  if HashTarget = '' then
+  begin
+    FLastError := 'Commit hash cannot be empty.';
+    Exit(False);
+  end;
+
+  Result := RunCommand(['revert', '--no-edit', HashTarget], OutStr);
+  if not Result then
+    FLastError := OutStr;
 end;
 
 end.

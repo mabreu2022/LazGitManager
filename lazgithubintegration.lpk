@@ -26,7 +26,7 @@
     <Description Value="Git and GitHub REST API integration plugin for Lazarus IDE"/>
     <License Value="MIT"/>
     <Version Major="1" Minor="0" Release="0" Build="0"/>
-    <Files Count="8">
+    <Files Count="10">
       <Item1>
         <Filename Value="LazGitHubConfig.pas"/>
         <UnitName Value="LazGitHubConfig"/>
@@ -61,6 +61,14 @@
         <AddToUsesPkgSection Value="False"/>
         <UnitName Value="LazGitHubRegistration"/>
       </Item8>
+      <Item9>
+        <Filename Value="LazGitRevertForm.pas"/>
+        <UnitName Value="LazGitRevertForm"/>
+      </Item9>
+      <Item10>
+        <Filename Value="LazGitRevertForm.lfm"/>
+        <Type Value="LFM"/>
+      </Item10>
     </Files>
     <RequiredPkgs Count="3">
       <Item1>

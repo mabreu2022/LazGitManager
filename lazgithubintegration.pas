@@ -9,7 +9,8 @@ interface
 
 uses
   LazGitHubConfig, LazGitHubAPI, LazGitCLI, LazGitDockForm, 
-  LazGitHubOptionsFrame, LazGitHubRegistration, LazarusPackageIntf;
+  LazGitHubOptionsFrame, LazGitHubRegistration, LazGitRevertForm, 
+  LazarusPackageIntf;
 
 implementation
 

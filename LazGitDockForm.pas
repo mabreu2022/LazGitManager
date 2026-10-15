@@ -10,7 +10,7 @@ uses
   // IDEIntf
   IDEWindowIntf, LazIDEIntf, ProjectIntf,
   // Local units
-  LazGitHubConfig, LazGitHubAPI, LazGitCLI, LazGitHubOptionsFrame;
+  LazGitHubConfig, LazGitHubAPI, LazGitCLI, LazGitHubOptionsFrame, LazGitRevertForm;
 
 const
   LazGitDockFormName = 'LazGitDockViewForm';
@@ -51,6 +51,7 @@ type
     btnDiscard: TButton;
     btnPull: TButton;
     btnPush: TButton;
+    btnRevert: TButton;
     lvChanges: TListView;
     pmChanges: TPopupMenu;
     miStage: TMenuItem;
@@ -110,6 +111,7 @@ type
     procedure btnDiscardClick(Sender: TObject);
     procedure btnPullClick(Sender: TObject);
     procedure btnPushClick(Sender: TObject);
+    procedure btnRevertClick(Sender: TObject);
     procedure lvChangesItemChecked(Sender: TObject; Item: TListItem);
 
     procedure miStageClick(Sender: TObject);
@@ -315,6 +317,7 @@ begin
     btnDiscard.Enabled := False;
     btnPull.Enabled := False;
     btnPush.Enabled := False;
+    btnRevert.Enabled := False;
     lvChanges.Items.Clear;
     RepositionTopBarLabels;
     Exit;
@@ -340,6 +343,7 @@ begin
     btnDiscard.Enabled := False;
     btnPull.Enabled := False;
     btnPush.Enabled := False;
+    btnRevert.Enabled := False;
     lvChanges.Items.Clear;
     Exit;
   end;
@@ -353,6 +357,7 @@ begin
   btnDiscard.Enabled := True;
   btnPull.Enabled := True;
   btnPush.Enabled := True;
+  btnRevert.Enabled := True;
 
   CurBranch := FGitRunner.GetCurrentBranch;
   if CurBranch <> '' then
@@ -599,6 +604,29 @@ begin
     MessageDlg('Git Push', 'Push completed successfully!' + LineEnding + LineEnding + PushOutput, mtInformation, [mbOK], 0);
 
   RefreshStatus;
+end;
+
+procedure TLazGitDockViewForm.btnRevertClick(Sender: TObject);
+var
+  ActionLog: string;
+begin
+  if not FGitRunner.HasActiveProject then
+  begin
+    MessageDlg('Git Revert', 'Nenhum projeto ativo carregado na IDE.', mtWarning, [mbOK], 0);
+    Exit;
+  end;
+
+  if not FGitRunner.IsRepoInitialized then
+  begin
+    MessageDlg('Git Revert', 'Este projeto ainda não possui commits ou repositório Git.', mtWarning, [mbOK], 0);
+    Exit;
+  end;
+
+  if TLazGitRevertForm.Execute(FGitRunner, ActionLog) then
+  begin
+    LogMessage(ActionLog);
+    RefreshStatus;
+  end;
 end;
 
 procedure TLazGitDockViewForm.btnStageAllClick(Sender: TObject);

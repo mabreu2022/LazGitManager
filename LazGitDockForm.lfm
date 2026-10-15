@@ -237,6 +237,15 @@ object LazGitDockViewForm: TLazGitDockViewForm
           OnClick = btnPushClick
           TabOrder = 5
         end
+        object btnRevert: TButton
+          Left = 507
+          Height = 25
+          Top = 4
+          Width = 85
+          Caption = 'Revert...'
+          OnClick = btnRevertClick
+          TabOrder = 6
+        end
       end
       object lvChanges: TListView
         Left = 0
