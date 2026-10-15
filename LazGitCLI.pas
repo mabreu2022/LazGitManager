@@ -328,11 +328,49 @@ end;
 
 function TLazGitRunner.GetCurrentBranch: string;
 var
-  OutStr: string;
+  OutStr, HeadPath, HeadContent: string;
+  PDir: string;
+  Sl: TStringList;
 begin
   Result := '';
-  if RunCommand(['rev-parse', '--abbrev-ref', 'HEAD'], OutStr) then
-    Result := Trim(OutStr);
+
+  // 1. Try modern git branch --show-current (works even on empty repos with 0 commits)
+  if RunCommand(['branch', '--show-current'], OutStr) and (Trim(OutStr) <> '') then
+    Exit(Trim(OutStr));
+
+  // 2. Try rev-parse --abbrev-ref HEAD
+  if RunCommand(['rev-parse', '--abbrev-ref', 'HEAD'], OutStr) and
+     (Trim(OutStr) <> '') and (Trim(OutStr) <> 'HEAD') then
+    Exit(Trim(OutStr));
+
+  // 3. Fallback: Read .git/HEAD file directly (works always if repo exists)
+  PDir := GetProjectDir;
+  if PDir <> '' then
+  begin
+    HeadPath := PDir + DirectorySeparator + '.git' + DirectorySeparator + 'HEAD';
+    if FileExists(HeadPath) then
+    begin
+      Sl := TStringList.Create;
+      try
+        try
+          Sl.LoadFromFile(HeadPath);
+          if Sl.Count > 0 then
+          begin
+            HeadContent := Trim(Sl[0]);
+            if Pos('ref: refs/heads/', HeadContent) = 1 then
+              Result := Copy(HeadContent, 17, Length(HeadContent));
+          end;
+        except
+          // Ignore file access issues
+        end;
+      finally
+        Sl.Free;
+      end;
+    end;
+  end;
+
+  if (Result = '') and IsRepoInitialized then
+    Result := 'main';
 end;
 
 function TLazGitRunner.GetDiff(const AFilename: string; AStaged: Boolean): string;
