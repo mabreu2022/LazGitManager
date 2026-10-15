@@ -306,8 +306,10 @@ begin
   btnDiff.Enabled := True;
   btnDiscard.Enabled := True;
 
-  if Assigned(LazarusIDE.ActiveProject) then
+  if Assigned(LazarusIDE.ActiveProject) and (LazarusIDE.ActiveProject.ProjectInfoFile <> '') then
     lblProject.Caption := ExtractFileName(LazarusIDE.ActiveProject.ProjectInfoFile)
+  else if FGitRunner.GetProjectDir <> '' then
+    lblProject.Caption := ExtractFileName(FGitRunner.GetProjectDir)
   else
     lblProject.Caption := '(Unknown)';
 
@@ -716,13 +718,26 @@ end;
 
 procedure TLazGitDockViewForm.btnSetRemoteClick(Sender: TObject);
 var
-  RepoInput, FullURL: string;
+  RepoInput, FullURL, ChosenDir: string;
 begin
   if not FGitRunner.HasActiveProject then
   begin
-    MessageDlg('Git Remote', 'No active project open in Lazarus IDE.' + LineEnding +
-      'Please open or create a project first.', mtWarning, [mbOK], 0);
-    Exit;
+    if MessageDlg('Git Remote',
+      'No active project open in Lazarus IDE.' + LineEnding + LineEnding +
+      'Would you like to select a folder on your computer to link with this GitHub repository?',
+      mtConfirmation, [mbYes, mbNo], 0) = mrYes then
+    begin
+      ChosenDir := '';
+      if SelectDirectory('Select Project Directory', '', ChosenDir) then
+      begin
+        FGitRunner.ExplicitWorkingDir := ChosenDir;
+        RefreshUI;
+      end
+      else
+        Exit;
+    end
+    else
+      Exit;
   end;
 
   RepoInput := Trim(cbRepos.Text);

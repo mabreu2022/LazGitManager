@@ -18,6 +18,6 @@ O manual detalhado em português está disponível na pasta `docs`:
 ---
 
 ## ⚡ Atalhos e Acessos Rápidos no Lazarus
-* **Painel Dockable Git & GitHub:** Pressione `Ctrl + Alt + G` ou acesse o menu **Exibir > Git & GitHub Manager**.
+* **Painel Dockable Git & GitHub:** Pressione `Ctrl + Shift + G` ou acesse o menu **Exibir > Git & GitHub Manager**.
 * **Commit do Projeto Ativo:** Acesse **Projeto > Git Commit Active Project...**.
-* **Credenciais e Opções do Git:** Acesse **Ferramentas > Opções > Ambiente > GitHub Integration** (ou pelo botão **Settings...** no painel `Ctrl+Alt+G`).
+* **Credenciais e Opções do Git:** Acesse **Ferramentas > Opções > Ambiente > GitHub Integration** (ou pelo botão **Settings...** no painel `Ctrl+Shift+G`).

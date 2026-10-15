@@ -59,7 +59,7 @@ begin
     '', alNone, False
   );
 
-  // 2. Register IDE Command with Ctrl+Alt+G shortcut
+  // 2. Register IDE Command with Ctrl+Shift+G shortcut (VS Code standard)
   ViewCat := IDECommandList.FindCategoryByName(CommandCategoryViewName);
   if ViewCat = nil then
     ViewCat := RegisterIDECommandCategory(nil, 'GitCommands', 'Git & GitHub Commands');
@@ -68,7 +68,7 @@ begin
     ViewCat,
     'ViewGitGitHubManager',
     'Git && GitHub Manager',
-    IDEShortCut(VK_G, [ssCtrl, ssAlt]),
+    IDEShortCut(VK_G, [ssCtrl, ssShift]),
     nil,
     @OnShowGitDockForm
   );

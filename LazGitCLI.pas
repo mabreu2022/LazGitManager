@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, Math, Forms, Process,
   // IDEIntf
-  LazIDEIntf,
+  LazIDEIntf, SrcEditorIntf,
   // Local config
   LazGitHubConfig;
 
@@ -18,6 +18,7 @@ type
   private
     FLastError: string;
     FLastExitCode: Integer;
+    FExplicitWorkingDir: string;
 
     function GetGitExecutable: string;
     function RunCommand(const AArgs: array of string; out AOutput: string): Boolean;
@@ -44,6 +45,7 @@ type
     function InitRepo: Boolean;
     function SetRemoteURL(const ARemoteURL: string; const ARemote: string = 'origin'): Boolean;
 
+    property ExplicitWorkingDir: string read FExplicitWorkingDir write FExplicitWorkingDir;
     property LastError: string read FLastError;
     property LastExitCode: Integer read FLastExitCode;
   end;
@@ -57,6 +59,7 @@ begin
   inherited Create;
   FLastError := '';
   FLastExitCode := 0;
+  FExplicitWorkingDir := '';
 end;
 
 destructor TLazGitRunner.Destroy;
@@ -73,19 +76,31 @@ end;
 
 function TLazGitRunner.HasActiveProject: Boolean;
 begin
-  Result := Assigned(LazarusIDE) and Assigned(LazarusIDE.ActiveProject) and
-            (GetProjectDir <> '');
+  Result := (GetProjectDir <> '');
 end;
 
 function TLazGitRunner.GetProjectDir: string;
 begin
   Result := '';
+
+  // 1. Explicit working directory if manually chosen
+  if (FExplicitWorkingDir <> '') and DirectoryExists(FExplicitWorkingDir) then
+    Exit(FExplicitWorkingDir);
+
+  // 2. Active Lazarus Project (.lpi or main source)
   if Assigned(LazarusIDE) and Assigned(LazarusIDE.ActiveProject) then
   begin
     if LazarusIDE.ActiveProject.ProjectInfoFile <> '' then
       Result := ExtractFileDir(LazarusIDE.ActiveProject.ProjectInfoFile)
     else if LazarusIDE.ActiveProject.MainFile <> nil then
       Result := ExtractFileDir(LazarusIDE.ActiveProject.MainFile.Filename);
+  end;
+
+  // 3. Fallback: Folder of the file currently active in the IDE editor
+  if (Result = '') and Assigned(SourceEditorManagerIntf) and Assigned(SourceEditorManagerIntf.ActiveEditor) then
+  begin
+    if SourceEditorManagerIntf.ActiveEditor.FileName <> '' then
+      Result := ExtractFileDir(SourceEditorManagerIntf.ActiveEditor.FileName);
   end;
 end;
 

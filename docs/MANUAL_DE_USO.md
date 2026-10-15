@@ -90,7 +90,7 @@ O Lazarus recompilará o executável do IDE já com o pacote embutido.
 ### 1. Configurando o Plugin
 1. No menu principal do Lazarus, vá em **Ferramentas > Opções...** (Tools > Options).
 2. Na árvore de categorias à esquerda, localize **Ambiente > GitHub Integration** (ou **Environment > GitHub Integration**).
-   *(Dica: Você também pode abrir essa tela diretamente abrindo o painel do plugin com `Ctrl+Alt+G` e clicando no botão **Settings...**)*
+   *(Dica: Você também pode abrir essa tela diretamente abrindo o painel do plugin com `Ctrl+Shift+G` e clicando no botão **Settings...**)*
 3. Configure os parâmetros:
    * **Git Executable Path:** Caminho do executável do Git (padrão: `git`, ou aponte para `C:\Program Files\Git\cmd\git.exe` usando o botão *Browse...*).
    * **Auto-Fetch Interval:** Intervalo em minutos para verificação automática de alterações remotas (coloque `0` para desativar).
@@ -105,7 +105,7 @@ O Lazarus recompilará o executável do IDE já com o pacote embutido.
 
 ### 2. Abrindo o Painel do Git & GitHub
 Você pode abrir a janela do gerenciador de duas formas:
-* Pelo atalho do teclado: **`Ctrl + Alt + G`**
+* Pelo atalho do teclado: **`Ctrl + Shift + G`**
 * Pelo menu: **Exibir > Git & GitHub Manager** (View > Git & GitHub Manager).
 
 > **Recurso de Docking:** Arraste a aba da janela para acoplá-la em qualquer divisão da sua área de trabalho do Lazarus (por exemplo, ao lado da lista de Mensagens ou do Editor de Código). O layout é lembrado automaticamente nas próximas sessões.
@@ -171,7 +171,7 @@ No menu **Projeto > Git Commit Active Project...**:
 | `LazGitCLI.pas` | Motor de execução de comandos do Git local via `TProcess` com captura assíncrona de logs. |
 | `LazGitDockForm.pas` / `.lfm` | Formulário visual acoplável contendo as abas de Git Changes, GitHub Remote e Log. |
 | `LazGitHubOptionsFrame.pas` / `.lfm` | Frame integrado na tela de Opções do Lazarus (**Ferramentas > Opções > Ambiente > GitHub Integration**). |
-| `LazGitHubRegistration.pas` | Registra as janelas dockáveis (`IDEWindowCreators`), menus e comandos de teclado (`Ctrl+Alt+G`). |
+| `LazGitHubRegistration.pas` | Registra as janelas dockáveis (`IDEWindowCreators`), menus e comandos de teclado (`Ctrl+Shift+G`). |
 | `lazgithubintegration.lpk` | Descritor XML oficial do pacote para o instalador do Lazarus. |
 
 ---
